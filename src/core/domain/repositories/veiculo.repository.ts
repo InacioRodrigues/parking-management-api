@@ -6,4 +6,5 @@ export interface IVeiculoRepository {
   create(data: Omit<Veiculo, 'id'>): Promise<Veiculo>;
   update(id: number, data: Partial<Veiculo>): Promise<Veiculo>;
   delete(id: number): Promise<void>;
+
 }

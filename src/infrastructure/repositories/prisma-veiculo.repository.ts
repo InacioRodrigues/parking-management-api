@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { IVeiculoRepository } from '../../core/domain/repositories/veiculo.repository';
 import { Veiculo } from '../../core/domain/entities/veiculo.entity';
@@ -18,12 +18,39 @@ export class PrismaVeiculoRepository implements IVeiculoRepository {
     return new Veiculo(veiculo.id, veiculo.marca, veiculo.modelo, veiculo.cor, veiculo.placa, veiculo.tipo, veiculo.registroId, veiculo.estabelecimentoId);
   }
 
+  async findByPlaca(placa: string): Promise<Veiculo | null> {
+    const veiculo = await this.prisma.veiculo.findUnique({ where: { placa } });
+    if (!veiculo) return null;
+    return new Veiculo(
+      veiculo.id,
+      veiculo.marca,
+      veiculo.modelo,
+      veiculo.cor,
+      veiculo.placa,
+      veiculo.tipo,
+      veiculo.registroId,
+      veiculo.estabelecimentoId
+    );
+  }
+
   async create(data: Omit<Veiculo, 'id'> & { registroId: number; estabelecimentoId: number }): Promise<Veiculo> {
+    
+    const veiculoExistente = await this.findByPlaca(data.placa);
+    if (veiculoExistente) {
+      throw new ConflictException('Já existe um veículo com essa placa.');
+    }
     const veiculo = await this.prisma.veiculo.create({ data });
-    return new Veiculo(veiculo.id, veiculo.marca, veiculo.modelo, veiculo.cor, veiculo.placa, veiculo.tipo, veiculo.registroId || null, veiculo.estabelecimentoId);
+        return new Veiculo(veiculo.id, veiculo.marca, veiculo.modelo, veiculo.cor, veiculo.placa, veiculo.tipo, veiculo.registroId || null, veiculo.estabelecimentoId);
   }
 
   async update(id: number, data: Partial<Veiculo>): Promise<Veiculo> {
+
+    if (data.placa) {
+      const veiculoExistente = await this.findByPlaca(data.placa);
+      if (veiculoExistente && veiculoExistente.id !== id) {
+        throw new ConflictException('Já existe um veículo com essa placa.');
+      }
+    } 
     const veiculo = await this.prisma.veiculo.update({ where: { id }, data });
     return new Veiculo(veiculo.id, veiculo.marca, veiculo.modelo, veiculo.cor, veiculo.placa, veiculo.tipo, veiculo.registroId, veiculo.estabelecimentoId);
   }

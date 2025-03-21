@@ -1,6 +1,7 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { ConflictException, Inject, Injectable } from '@nestjs/common';
 import { IVeiculoRepository } from '../../domain/repositories/veiculo.repository';
 import { Veiculo } from '../../domain/entities/veiculo.entity';
+import { CreateVeiculoDto } from 'src/interface/dtos/create-veiculo.dto';
 
 @Injectable()
 export class VeiculoService {
@@ -15,8 +16,15 @@ export class VeiculoService {
     return this.repository.findById(id);
   }
 
-  async create(data: Omit<Veiculo, 'id'>): Promise<Veiculo> {
-    return this.repository.create(data);
+  async create(data: CreateVeiculoDto): Promise<Veiculo> {
+    try {
+      return await this.repository.create(data);
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw new ConflictException(error.message);
+      }
+      throw error;
+    }
   }
 
   async update(id: number, data: Partial<Veiculo>): Promise<Veiculo> {
