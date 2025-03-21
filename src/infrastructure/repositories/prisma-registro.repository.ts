@@ -16,15 +16,21 @@ export class PrismaRegistroRepository implements IRegistroRepository {
 
  
   async findEntradasSaidasPorHora(): Promise<{ hora: Date; entradas: number; saidas: number }[]> {
-    const registros = await this.prisma.$queryRaw<{ hora: Date; entradas: number; saidas: number }[]>`
+    const registros = await this.prisma.$queryRaw<{ hora: Date; entradas: bigint; saidas: bigint }[]>`
       SELECT
         DATE_TRUNC('hour', "dataHora") AS hora,
         SUM(CASE WHEN tipo = 'entrada' THEN 1 ELSE 0 END) AS entradas,
         SUM(CASE WHEN tipo = 'saida' THEN 1 ELSE 0 END) AS saidas
-      FROM "registros"  
+      FROM "registros"
       GROUP BY hora
       ORDER BY hora;
     `;
-    return registros;
+  
+    // Converter BigInt para Number
+    return registros.map(registro => ({
+      hora: registro.hora,
+      entradas: Number(registro.entradas),
+      saidas: Number(registro.saidas),
+    }));
   }
 }
